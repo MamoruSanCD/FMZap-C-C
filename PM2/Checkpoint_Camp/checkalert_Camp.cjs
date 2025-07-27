@@ -124,8 +124,8 @@ function enqueueMessage({ chatId, message }) {
         message: message,
         tipo: 2
     })
-        .then(() => console.log(`Mensagem enviada para ${chatId}`))
-        .catch(err => console.error(`Erro ao enviar mensagem para ${chatId}:`, err));
+        .then(() => console.log(`✅ Mensagem enviada para ${chatId}`))
+        .catch(err => console.error(`❌ Erro ao enviar mensagem para ${chatId}:`, err));
 }
 
 /**
@@ -138,13 +138,13 @@ async function loginZabbix(browser) {
         await page.setViewport({ width: 1920, height: 1080 });
 
         // Tenta acessar página de login e espera seletor do formulário
-        await page.goto(ZABBIX_LOGIN_URL, { waitUntil: 'networkidle0', timeout: 30000 });
-        await page.waitForSelector('#name', { timeout: 10000 });
+        await page.goto(ZABBIX_LOGIN_URL, { waitUntil: 'networkidle0', timeout: 120000 }); // Aumentado para 2 minutos
+        await page.waitForSelector('#name', { timeout: 60000 }); // Aumentado para 1 minuto
         await page.type('#name', USERNAME);
         await page.type('#password', PASSWORD);
         await Promise.all([
             page.click('#enter'),
-            page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 30000 })
+            page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 120000 }) // Aumentado para 2 minutos
         ]);
 
         // Verifica se houve erro de login (exemplo: existe algum seletor de erro)
@@ -247,8 +247,23 @@ function parseDurationToMinutes(durationStr) {
  * Função para extrair alertas de uma página do Zabbix
  */
 async function extractAlerts(page) {
-    await page.waitForSelector('.list-table', { timeout: 10000 });
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    console.log('🟡 Aguardando tabela de problemas...');
+    try {
+        await page.waitForSelector('.list-table', { timeout: 120000 }); // 2 minutos
+        console.log('✅ Tabela de problemas carregada!');
+    } catch (error) {
+        console.log('⚠️ Tabela .list-table não encontrada, tentando seletor alternativo...');
+        try {
+            await page.waitForSelector('table', { timeout: 60000 });
+            console.log('✅ Tabela encontrada com seletor alternativo!');
+        } catch (error2) {
+            console.log('⚠️ Nenhuma tabela encontrada, continuando mesmo assim...');
+        }
+    }
+
+    // Aguardar um pouco mais para garantir que tudo carregou
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
     const alerts = await page.evaluate(() => {
         const rows = Array.from(document.querySelectorAll('.list-table tbody tr'));
         const alertData = [];
@@ -305,7 +320,15 @@ async function extractAlerts(page) {
  */
 async function viewAlerts(page) {
     console.log('🟡 Verificando alertas...');
-    await page.goto(URL_DASHBOARD, { waitUntil: 'networkidle0' });
+    console.log('🟡 Navegando para o dashboard...');
+    await page.goto(URL_DASHBOARD, { 
+        waitUntil: 'networkidle0',
+        timeout: 120000 // Aumentado para 2 minutos
+    });
+    
+    console.log('🟡 Aguardando carregamento completo da página...');
+    await page.waitForLoadState('networkidle');
+    
     const alerts = await extractAlerts(page);
     return alerts;
 }
@@ -335,6 +358,7 @@ async function sendMassiveMessage(controleNumber, count) {
  */
 async function processAlerts() {
     const browser = await puppeteer.launch({
+        executablePath: '/usr/bin/chromium-browser',
         headless: true,
         args: [
             '--no-sandbox',
@@ -434,7 +458,7 @@ async function processAlerts() {
         saveCache(Array.from(cacheSet));
 
     } catch (error) {
-        console.error('Erro durante o processamento:', error);
+        console.error('❌ Erro durante o processamento:', error);
     } finally {
         await browser.close();
         console.log('🟨 Processamento de alertas concluído. Encerrando execução.');
