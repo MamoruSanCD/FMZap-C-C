@@ -1,1 +1,8 @@
-[]
+[
+  "CECSP3GLPI01|Equipamento não está respondendo a ping - Verificar urgente - Ele pode ter reiniciado ou está sem rede|2024-02-07 06:49:38 PM",
+  "Fast Shop - HOAPGAN003FST - IP 172.30.40.30 - Cluster GAN DB - Ativo e Passivo|Fast Shop - HOAPGAN003FST - IP 172.30.40.30 - Cluster GAN DB - Ativo e Passivo - Alerta de ambiente indisponivel|2023-12-26 05:31:24 AM",
+  "Fast Shop - HOAPGAN004FST - IP 172.30.40.31 - Cluster GAN DB - Ativo|Fast Shop - HOAPGAN004FST - IP 172.30.40.31 - Cluster GAN DB - Ativo - Alerta de ambiente indisponivel|2023-12-26 05:31:25 AM",
+  "Fast Shop - HOAPPRX001FST - IP 172.30.17.94 - Reverse Proxy Environment|Fast Shop - HOAPPRX001FST - IP 172.30.17.94 - Reverse Proxy Environment - Alerta de ambiente indisponivel|2023-12-26 02:30:48 AM",
+  "Fast Shop - HOAPPRX001FST - IP 172.30.17.96 - Reverse Proxy Environment|Fast Shop - HOAPPRX001FST - IP 172.30.17.96 - Reverse Proxy Environment - Alerta de ambiente indisponivel|2023-12-26 02:30:51 AM",
+  "Fast Shop - HOAPPRX001FST - IP 172.30.17.97 - Reverse Proxy Environment|Fast Shop - HOAPPRX001FST - IP 172.30.17.97 - Reverse Proxy Environment - Alerta de ambiente indisponivel|2023-12-26 02:30:54 AM"
+]

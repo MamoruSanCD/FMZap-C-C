@@ -1,1 +1,13 @@
-[]
+[
+  "CECSP3GLPI01|Equipamento não está respondendo a ping - Verificar urgente - Ele pode ter reiniciado ou está sem rede|2024-02-07 06:49:38 PM",
+  "Fast Shop - HOAPGAN003FST - IP 172.30.40.30 - Cluster GAN DB - Ativo e Passivo|Fast Shop - HOAPGAN003FST - IP 172.30.40.30 - Cluster GAN DB - Ativo e Passivo - Alerta de ambiente indisponivel|2023-12-26 05:31:24 AM",
+  "Fast Shop - HOAPGAN004FST - IP 172.30.40.31 - Cluster GAN DB - Ativo|Fast Shop - HOAPGAN004FST - IP 172.30.40.31 - Cluster GAN DB - Ativo - Alerta de ambiente indisponivel|2023-12-26 05:31:25 AM",
+  "Fast Shop - HOAPPRX001FST - IP 172.30.17.94 - Reverse Proxy Environment|Fast Shop - HOAPPRX001FST - IP 172.30.17.94 - Reverse Proxy Environment - Alerta de ambiente indisponivel|2023-12-26 02:30:48 AM",
+  "Fast Shop - HOAPPRX001FST - IP 172.30.17.96 - Reverse Proxy Environment|Fast Shop - HOAPPRX001FST - IP 172.30.17.96 - Reverse Proxy Environment - Alerta de ambiente indisponivel|2023-12-26 02:30:51 AM",
+  "Fast Shop - HOAPPRX001FST - IP 172.30.17.97 - Reverse Proxy Environment|Fast Shop - HOAPPRX001FST - IP 172.30.17.97 - Reverse Proxy Environment - Alerta de ambiente indisponivel|2023-12-26 02:30:54 AM",
+  "10.205.100.246|Equipamento sem responder a 3 pings seguidos - Notificar e escalar urgente|2025-04-02 10:55:08 PM",
+  "AMX-OSCPRX|[000.111-Y] - AMX-OSCPRX - Sem dados recentes ao coletar //var/lib/pgsql/data|2024-03-07 05:36:39 PM",
+  "CAM-DC1-CECCPSNIM|Alerta para utilização no filesystem /softs: O espaço livre em disco é menor que 20% - Total: 372 GB  Livre: 30.69 GB|2024-03-11 04:57:57 PM",
+  "CAM-DC1-ESX-10.205.100.33|[000.385-E] - CAM-DC1-ESX-10.205.100.33 - Indisponivel por 30m|2024-04-02 11:39:56 AM",
+  "10.205.100.252|Equipamento sem responder a 3 pings seguidos - Notificar e escalar urgente|2025-02-05 11:59:27 PM"
+]
