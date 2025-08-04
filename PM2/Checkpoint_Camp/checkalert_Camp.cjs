@@ -18,7 +18,7 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
  */
 const ZABBIX_LOGIN_URL = process.env.ZABBIX_Camp_URL;
 const URL_BASE = ZABBIX_LOGIN_URL.replace('/index.php', '');
-const URL_DASHBOARD = `${URL_BASE}/zabbix.php?show=3&name=&severities%5B4%5D=4&severities%5B5%5D=5&inventory%5B0%5D%5Bfield%5D=type&inventory%5B0%5D%5Bvalue%5D=&evaltype=0&tags%5B0%5D%5Btag%5D=&tags%5B0%5D%5Boperator%5D=0&tags%5B0%5D%5Bvalue%5D=&show_tags=3&tag_name_format=0&tag_priority=&show_opdata=0&show_suppressed=1&unacknowledged=1&filter_name=&filter_show_counter=0&filter_custom_time=0&sort=clock&sortorder=DESC&age_state=0&compact_view=0&show_timeline=0&details=0&highlight_row=0&action=problem.view&groupids%5B%5D=174&groupids%5B%5D=177&groupids%5B%5D=178`;
+const URL_DASHBOARD = `${URL_BASE}zabbix.php?show=3&name=&acknowledgement_status=0&inventory%5B0%5D%5Bfield%5D=type&inventory%5B0%5D%5Bvalue%5D=&evaltype=0&tags%5B0%5D%5Btag%5D=&tags%5B0%5D%5Boperator%5D=0&tags%5B0%5D%5Bvalue%5D=&show_tags=3&tag_name_format=0&tag_priority=&show_opdata=0&show_timeline=1&filter_name=&filter_show_counter=0&filter_custom_time=0&sort=clock&sortorder=DESC&age_state=0&show_symptoms=0&show_suppressed=0&acknowledged_by_me=0&compact_view=0&details=0&highlight_row=0&action=problem.view`;
 const USERNAME = process.env.ZABBIX_Camp_USERNAME;
 const PASSWORD = process.env.ZABBIX_Camp_PASSWORD;
 
@@ -124,8 +124,8 @@ function enqueueMessage({ chatId, message }) {
         message: message,
         tipo: 2
     })
-        .then(() => console.log(`✅ Mensagem enviada para ${chatId}`))
-        .catch(err => console.error(`❌ Erro ao enviar mensagem para ${chatId}:`, err));
+        .then(() => console.log('✅ Mensagem enviada para ' + chatId))
+        .catch(err => console.error('❌ Erro ao enviar mensagem para ' + chatId + ':', err));
 }
 
 /**
@@ -137,30 +137,74 @@ async function loginZabbix(browser) {
         const page = await browser.newPage();
         await page.setViewport({ width: 1920, height: 1080 });
 
+        // Configurar User-Agent e cabeçalhos para evitar detecção de automação
+        await page.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36');
+        await page.setExtraHTTPHeaders({
+            'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1'
+        });
+
         // Tenta acessar página de login e espera seletor do formulário
-        await page.goto(ZABBIX_LOGIN_URL, { waitUntil: 'networkidle0', timeout: 120000 }); // Aumentado para 2 minutos
-        await page.waitForSelector('#name', { timeout: 60000 }); // Aumentado para 1 minuto
+        await page.goto(ZABBIX_LOGIN_URL, { waitUntil: 'networkidle0', timeout: 30000 });
+        await page.waitForSelector('#name', { timeout: 60000 });
         await page.type('#name', USERNAME);
         await page.type('#password', PASSWORD);
         await Promise.all([
             page.click('#enter'),
-            page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 120000 }) // Aumentado para 2 minutos
+            page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 30000 })
         ]);
 
-        // Verifica se houve erro de login (exemplo: existe algum seletor de erro)
+        // Verifica se houve erro de login
         const loginError = await page.$('.error');
         if (loginError) {
             throw new Error('Credenciais inválidas ou erro de login');
         }
 
+        // Debug: URL após login
+        const urlAfterLogin = page.url();
+        console.log('🌐 URL após login:', urlAfterLogin);
+        
+        // Verificar se ainda está na página de login (login falhou)
+        if (urlAfterLogin.includes('login') || urlAfterLogin.includes('index.php')) {
+            throw new Error('Login falhou - ainda na página de login');
+        }
+
+        // Debug: cookies após login
+        const cookies = await page.cookies();
+        console.log('🍪 Cookies após login:', cookies);
+
+        // Verificar se o link de logout existe (indica login bem-sucedido)
+        const logoutLink = await page.$('a[href*="action=logout"]');
+        if (!logoutLink) {
+            throw new Error('Sessão expirou após login (logout link não encontrado)');
+        }
+
         console.log('✅ Login no Zabbix realizado com sucesso.');
+        
+        // Aguardar um pouco para garantir que a sessão foi estabelecida
+        await page.waitForTimeout(3000);
+        
+        // Verificar se ainda está logado
+        const isLoggedIn = await page.evaluate(() => {
+            return !document.body.innerText.includes('Você não está autenticado') && 
+                   !document.body.innerText.includes('You are not logged in');
+        });
+        
+        if (!isLoggedIn) {
+            throw new Error('Sessão não foi mantida após login');
+        }
+        
+        console.log('✅ Sessão verificada e ativa.');
         return page;
     } catch (error) {
         // Analisar o erro e lançar erro customizado para depois identificar melhor
         if (error.message.includes('Timeout') || error.message.includes('Navigation')) {
             throw new Error('Timeout ou falha de navegação');
         }
-        if (error.message.includes('Credenciais inválidas')) {
+        if (error.message.includes('Credenciais inválidas') || error.message.includes('Login falhou')) {
             throw new Error('Erro de credenciais');
         }
         // Outro erro genérico
@@ -249,23 +293,71 @@ function parseDurationToMinutes(durationStr) {
 async function extractAlerts(page) {
     console.log('🟡 Aguardando tabela de problemas...');
     try {
-        await page.waitForSelector('.list-table', { timeout: 120000 }); // 2 minutos
+        await page.waitForSelector('.list-table', { timeout: 10000 });
         console.log('✅ Tabela de problemas carregada!');
     } catch (error) {
         console.log('⚠️ Tabela .list-table não encontrada, tentando seletor alternativo...');
         try {
-            await page.waitForSelector('table', { timeout: 60000 });
+            await page.waitForSelector('table', { timeout: 10000 });
             console.log('✅ Tabela encontrada com seletor alternativo!');
-        } catch (error2) {
-            console.log('⚠️ Nenhuma tabela encontrada, continuando mesmo assim...');
+            } catch (error2) {
+        console.log('⚠️ Nenhuma tabela encontrada, continuando mesmo assim...');
+        
+        // Debug: capturar o título da página para verificar se estamos na página correta
+        const pageTitle = await page.title();
+        console.log('📄 Título da página:', pageTitle);
+        
+        // Debug: verificar se há algum texto indicando que não há problemas
+        const pageInfo = await page.evaluate(() => {
+            const bodyText = document.body.innerText;
+            const noProblems = bodyText.includes('No problems') || bodyText.includes('Nenhum problema') || bodyText.includes('No data');
+            
+            // Verificar se há algum texto sobre problemas
+            const hasProblems = bodyText.includes('Problem') || bodyText.includes('Warning') || bodyText.includes('Critical');
+            
+            // Verificar elementos comuns do Zabbix
+            const hasZabbixElements = document.querySelectorAll('.list-table, .problem-list, .problems-table').length > 0;
+            
+            return {
+                noProblems,
+                hasProblems,
+                hasZabbixElements,
+                bodyTextLength: bodyText.length,
+                sampleText: bodyText.substring(0, 200) // Primeiros 200 caracteres
+            };
+        });
+        console.log('🔍 Debug da página:', pageInfo);
+        
+        // Debug: capturar screenshot para análise visual
+        try {
+            await page.screenshot({ 
+                path: path.join(__dirname, 'debug_screenshot.png'),
+                fullPage: true 
+            });
+            console.log('📸 Screenshot salvo como debug_screenshot.png');
+        } catch (screenshotError) {
+            console.log('⚠️ Erro ao capturar screenshot:', screenshotError.message);
         }
+    }
     }
 
     // Aguardar um pouco mais para garantir que tudo carregou
     await new Promise(resolve => setTimeout(resolve, 3000));
     
     const alerts = await page.evaluate(() => {
+        console.log('🔍 Procurando por tabelas na página...');
+        
+        // Debug: verificar todas as tabelas na página
+        const allTables = document.querySelectorAll('table');
+        console.log(`📊 Encontradas ${allTables.length} tabelas na página`);
+        
+        // Debug: verificar elementos com classe list-table
+        const listTables = document.querySelectorAll('.list-table');
+        console.log(`📋 Encontrados ${listTables.length} elementos com classe .list-table`);
+        
         const rows = Array.from(document.querySelectorAll('.list-table tbody tr'));
+        console.log(`📝 Encontradas ${rows.length} linhas na tabela .list-table`);
+        
         const alertData = [];
         rows.forEach((row, index) => {
             const cells = row.querySelectorAll('td');
@@ -320,15 +412,77 @@ async function extractAlerts(page) {
  */
 async function viewAlerts(page) {
     console.log('🟡 Verificando alertas...');
-    console.log('🟡 Navegando para o dashboard...');
-    await page.goto(URL_DASHBOARD, { 
-        waitUntil: 'networkidle0',
-        timeout: 120000 // Aumentado para 2 minutos
+
+    // Verificar se ainda está logado antes de navegar
+    const isLoggedIn = await page.evaluate(() => {
+        return !document.body.innerText.includes('Você não está autenticado') && 
+               !document.body.innerText.includes('You are not logged in');
     });
+    if (!isLoggedIn) {
+        throw new Error('Sessão expirou antes de acessar o dashboard');
+    }
+
+    // Verificar se o link de logout ainda existe
+    const logoutLink = await page.$('a[href*="action=logout"]');
+    if (!logoutLink) {
+        throw new Error('Sessão expirou (logout link não encontrado)');
+    }
+
+    console.log('🟡 Navegando para o dashboard...');
     
-    console.log('🟡 Aguardando carregamento completo da página...');
-    await page.waitForLoadState('networkidle');
+    // Ir direto para o dashboard
+    await page.goto(URL_DASHBOARD, {
+        waitUntil: 'networkidle0',
+        timeout: 30000
+    });
+
+    // Debug: verificar URL após navegação
+    const urlAfterNavigation = page.url();
+    console.log('🌐 URL após navegação:', urlAfterNavigation);
     
+    // Verificar se foi redirecionado para login
+    if (urlAfterNavigation.includes('login') || urlAfterNavigation.includes('index.php')) {
+        throw new Error('Sessão expirou ao acessar o dashboard (redirecionado para login)');
+    }
+
+    // (Opcional) Screenshot para debug
+    await page.screenshot({ path: 'tela_dashboard.png' });
+
+    // Checar se a sessão ainda está ativa após navegar
+    const isStillLoggedIn = await page.evaluate(() => {
+        return !document.body.innerText.includes('Você não está autenticado') && 
+               !document.body.innerText.includes('You are not logged in');
+    });
+    if (!isStillLoggedIn) {
+        throw new Error('Sessão expirou ao acessar o dashboard');
+    }
+
+    // Verificar se o link de logout ainda existe após navegação
+    const logoutLinkAfterNav = await page.$('a[href*="action=logout"]');
+    if (!logoutLinkAfterNav) {
+        throw new Error('Sessão expirou após navegação (logout link não encontrado)');
+    }
+
+    console.log('✅ Sessão mantida após navegar para dashboard');
+
+    // Esperar o conteúdo do dashboard carregar
+    try {
+        await page.waitForSelector('.list-table, table, .problem-list', { timeout: 10000 });
+        console.log('✅ Página carregada com sucesso');
+    } catch (error) {
+        console.log('⚠️ Tabela não encontrada em 10s, aguardando mais um pouco...');
+        await new Promise(resolve => setTimeout(resolve, 3000));
+    }
+
+    // (Opcional) Logar todos os links para debug
+    const links = await page.evaluate(() => {
+        return Array.from(document.querySelectorAll('a')).map(a => ({
+            text: a.innerText,
+            href: a.href
+        }));
+    });
+    console.log('🔗 Links disponíveis após login:', links);
+
     const alerts = await extractAlerts(page);
     return alerts;
 }
@@ -356,16 +510,20 @@ async function sendMassiveMessage(controleNumber, count) {
 /**
  * Função principal para processamento dos alertas - LÓGICA CORRIGIDA
  */
-async function processAlerts() {
+async function main() {
     const browser = await puppeteer.launch({
-        executablePath: '/usr/bin/chromium-browser',
-        headless: true,
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--window-size=1920,1080'
-        ],
-        defaultViewport: null
+      executablePath: '/usr/bin/google-chrome',
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--window-size=1920,1080',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process'
+      ]
     });
 
     try {
@@ -467,7 +625,7 @@ async function processAlerts() {
 
 // Iniciar o processamento dos alertas
 console.log('⭐ Iniciando verificação de alertas...');
-processAlerts()
+main()
     .then(() => {
         console.log('✅ Processamento concluído com sucesso.');
         process.exit(0);

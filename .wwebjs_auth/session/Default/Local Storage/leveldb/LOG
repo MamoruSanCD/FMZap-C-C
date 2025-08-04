@@ -1,0 +1,6 @@
+2025/07/29-00:24:01.631 9210d Reusing MANIFEST /home/matheus/Documentos/Projetos/FMZap-C-C/.wwebjs_auth/session/Default/Local Storage/leveldb/MANIFEST-000001
+2025/07/29-00:24:01.638 9210d Recovering log #3
+2025/07/29-00:24:01.639 9210d Reusing old log /home/matheus/Documentos/Projetos/FMZap-C-C/.wwebjs_auth/session/Default/Local Storage/leveldb/000003.log 
+2025/07/29-03:34:16.434 9210e Level-0 table #5: started
+2025/07/29-03:34:16.438 9210e Level-0 table #5: 17119 bytes OK
+2025/07/29-03:34:16.440 9210e Delete type=0 #3
